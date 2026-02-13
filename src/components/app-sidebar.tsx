@@ -5,12 +5,17 @@ import {
   BarChart3,
   Newspaper,
   Settings,
-  ShoppingBasket,
   Store,
   TrendingUp,
   Leaf,
+  ShoppingBasket,
+  Package,
+  Users,
+  CreditCard,
+  HandCoins,
+  Monitor,
+  PiggyBank,
 } from "lucide-react"
-import { usePathname } from "next/navigation"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -26,45 +31,75 @@ import {
 const data = {
   user: {
     name: "Natthakorn",
-    email: "owner",
+    email: "เจ้าของ",
     avatar: "",
   },
   teams: [
     {
-      name: "ThaichaiRat",
+      name: "ไทยชัยรัตย์",
       logo: Leaf,
-      plan: "Shop Dashboard",
+      plan: "แดชบอร์ดร้าน",
     },
   ],
   navMain: [
     {
-      title: "Dashboard",
+      title: "ภาพรวม",
       url: "/dashboard",
       icon: BarChart3,
       isActive: true,
     },
     {
-      title: "Shop",
+      title: "ร้านค้า",
       url: "/dashboard/shop",
       icon: Store,
     },
     {
-      title: "Market Prices",
+      title: "สต็อก",
+      url: "/dashboard/inventory",
+      icon: Package,
+    },
+    {
+      title: "พนักงาน",
+      url: "/dashboard/employees",
+      icon: Users,
+    },
+    {
+      title: "หนี้ค้างชำระ",
+      url: "/dashboard/payables",
+      icon: CreditCard,
+    },
+    {
+      title: "ลูกหนี้",
+      url: "/dashboard/credits",
+      icon: HandCoins,
+    },
+    {
+      title: "เงินเก็บ",
+      url: "/dashboard/savings",
+      icon: PiggyBank,
+    },
+    {
+      title: "ราคาตลาด",
       url: "/dashboard/market",
       icon: ShoppingBasket,
     },
     {
-      title: "Stocks",
+      title: "หุ้น",
       url: "/dashboard/stocks",
       icon: TrendingUp,
     },
     {
-      title: "News",
+      title: "ข่าวสาร",
       url: "/dashboard/news",
       icon: Newspaper,
     },
     {
-      title: "Settings",
+      title: "ระบบ",
+      url: "/dashboard/system",
+      icon: Monitor,
+    },
+    {
+      title: "ตั้งค่า",
       url: "/dashboard/settings",
       icon: Settings,
     },

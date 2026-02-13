@@ -1,83 +1,238 @@
 "use client"
 
+import { useState, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Settings, Server, Database, Clock } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { fetchMonitorData } from "@/lib/api"
+import { useMonitor } from "@/lib/monitor-context"
+import {
+  Settings,
+  Server,
+  Database,
+  Clock,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  LayoutDashboard,
+  Wifi,
+} from "lucide-react"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://46.225.19.81:8888"
+
+const PAGES = [
+  { name: "ภาพรวม", path: "/dashboard", dataKey: "shop" },
+  { name: "ร้านค้า", path: "/dashboard/shop", dataKey: "shop_history" },
+  { name: "สต็อก", path: "/dashboard/inventory", dataKey: "inventory" },
+  { name: "พนักงาน", path: "/dashboard/employees", dataKey: "employee_stats" },
+  { name: "หนี้ค้างชำระ", path: "/dashboard/payables", dataKey: "payables_data" },
+  { name: "ลูกหนี้", path: "/dashboard/credits", dataKey: "credits_data" },
+  { name: "ราคาตลาด", path: "/dashboard/market", dataKey: "market_stats" },
+  { name: "หุ้น", path: "/dashboard/stocks", dataKey: "stocks" },
+  { name: "ข่าวสาร", path: "/dashboard/news", dataKey: "news" },
+]
+
+const DATA_SOURCES = [
+  { name: "ยอดขาย / สต็อก / พนักงาน", source: "Supabase" },
+  { name: "หนี้ supplier / ลูกหนี้", source: "Supabase" },
+  { name: "ราคาตลาด", source: "DIT (pricelist.dit.go.th)" },
+  { name: "หุ้น", source: "Yahoo Finance" },
+  { name: "ข่าวสาร", source: "Brave Search" },
+]
 
 export default function SettingsPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://46.225.19.81:8888"
+  const { data, loading, refresh } = useMonitor()
+  const [pingMs, setPingMs] = useState<number | null>(null)
+  const [pinging, setPinging] = useState(false)
+
+  const testPing = useCallback(async () => {
+    setPinging(true)
+    const start = Date.now()
+    const d = await fetchMonitorData()
+    const elapsed = Date.now() - start
+    setPingMs(d !== null ? elapsed : null)
+    setPinging(false)
+    refresh()
+  }, [refresh])
+
+  const serverOnline = data !== null
+
+  const updatedAt = data?.updated_at
+    ? new Date(data.updated_at).toLocaleString("th-TH", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    : "-"
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <Settings className="h-6 w-6" />
-        <div>
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-sm text-muted-foreground">Configuration &amp; Info</p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Settings className="h-6 w-6" />
+          <div>
+            <h1 className="text-2xl font-bold">ตั้งค่า</h1>
+            <p className="text-sm text-muted-foreground">การตั้งค่าและข้อมูลระบบ</p>
+          </div>
         </div>
+        <button
+          onClick={testPing}
+          disabled={pinging}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${pinging ? "animate-spin" : ""}`} />
+          ทดสอบ
+        </button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Server className="h-4 w-4" />
-              API Connection
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Endpoint</span>
-              <code className="text-xs bg-muted px-2 py-1 rounded">{apiUrl}</code>
+      {/* Server Status */}
+      <Card className={`border-t-4 ${serverOnline === true ? "border-t-green-500" : serverOnline === false ? "border-t-red-500" : "border-t-muted"}`}>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Wifi className="h-4 w-4" />
+            สถานะเซิร์ฟเวอร์
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-4">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">สถานะ</p>
+              {loading || pinging ? (
+                <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : serverOnline ? (
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span className="font-medium text-green-500">ออนไลน์</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <XCircle className="h-4 w-4 text-red-500" />
+                  <span className="font-medium text-red-500">ออฟไลน์</span>
+                </div>
+              )}
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Data Source</span>
-              <span>VPS (Hetzner)</span>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Response Time</p>
+              <span className="font-mono font-medium">
+                {pingMs != null ? `${pingMs} ms` : "-"}
+              </span>
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">อัปเดตล่าสุด</p>
+              <span className="font-medium text-sm">{updatedAt}</span>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Endpoint</p>
+              <code className="text-xs bg-muted px-2 py-1 rounded">{API_URL}</code>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Data Sources */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Database className="h-4 w-4" />
-              Data Sources
+              แหล่งข้อมูล ({DATA_SOURCES.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2.5">
+            {DATA_SOURCES.map((ds) => (
+              <div key={ds.name} className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{ds.name}</span>
+                <Badge variant="outline" className="text-xs font-mono">{ds.source}</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Dashboard Pages */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              หน้าแดชบอร์ด ({PAGES.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            {PAGES.map((p) => {
+              const hasData = data ? !!(data as unknown as Record<string, unknown>)[p.dataKey] : false
+              return (
+                <div key={p.path} className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{p.name}</span>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs text-muted-foreground">{p.dataKey}</code>
+                    {data && (
+                      hasData ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                      ) : (
+                        <XCircle className="h-3.5 w-3.5 text-red-500" />
+                      )
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+
+        {/* API Connection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Server className="h-4 w-4" />
+              โครงสร้างระบบ
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Shop Data</span>
-              <span>Supabase</span>
+              <span className="text-muted-foreground">Frontend</span>
+              <span>Next.js (localhost:3000)</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Market Prices</span>
-              <span>DIT (pricelist.dit.go.th)</span>
+              <span className="text-muted-foreground">Backend</span>
+              <span>VPS (Hetzner)</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Stocks</span>
-              <span>Yahoo Finance</span>
+              <span className="text-muted-foreground">Database</span>
+              <span>Supabase (PostgreSQL)</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">News</span>
-              <span>Brave Search</span>
+              <span className="text-muted-foreground">AI Bot</span>
+              <span>ClawBot (OpenClaw)</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Telegram</span>
+              <span>@analog17_vps_bot</span>
             </div>
           </CardContent>
         </Card>
 
+        {/* Auto Refresh */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Auto Refresh
+              รีเฟรชอัตโนมัติ
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2.5">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">VPS Cron</span>
-              <span>Every 2 hours</span>
+              <span className="text-muted-foreground">VPS อัปเดต JSON</span>
+              <span>ทุก 2 ชั่วโมง (cron)</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Dashboard Poll</span>
-              <span>Every 5 minutes</span>
+              <span className="text-muted-foreground">สรุปสัปดาห์</span>
+              <span>อาทิตย์ 21:00 → Telegram</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">ดึงราคาตลาด DIT</span>
+              <span>ทุกวัน 06:00</span>
             </div>
           </CardContent>
         </Card>
