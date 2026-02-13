@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { type EmployeeStats } from "@/lib/api"
 import { useMonitor } from "@/lib/monitor-context"
+import { exportCSV } from "@/lib/export"
 import {
   Users,
   RefreshCw,
@@ -13,6 +14,7 @@ import {
   PieChart,
   Briefcase,
   CalendarDays,
+  Download,
 } from "lucide-react"
 
 const AttendanceChart = dynamic(() => import("@/components/attendance-chart"), { ssr: false })
@@ -72,14 +74,27 @@ export default function EmployeesPage() {
             <p className="text-sm text-muted-foreground">{es.month_label} | {data.updated_label}</p>
           </div>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-          รีเฟรช
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const em = es.employee_monthly ?? []
+              exportCSV("employees", ["ชื่อ", "ประเภท", "ค่าแรง/วัน", "วันทำงาน", "ลา", "ขาด", "ค่าแรงรวม", "อัตราเข้างาน%"],
+                em, ["name", "type", "wage_rate", "days_worked", "days_leave", "days_absent", "total_wage_paid", "attendance_rate"])
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <Download className="h-3.5 w-3.5" />
+            CSV
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            รีเฟรช
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}

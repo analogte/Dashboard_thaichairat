@@ -32,6 +32,8 @@ const PAGES = [
   { name: "เงินเก็บ", path: "/dashboard/savings", dataKey: "savings_data" },
   { name: "ระบบ", path: "/dashboard/system", dataKey: "system_health" },
   { name: "กำไรขาดทุน", path: "/dashboard/pnl", dataKey: "pnl_data" },
+  { name: "วิเคราะห์สินค้า", path: "/dashboard/analytics", dataKey: "stock_history" },
+  { name: "ปฏิทินร้าน", path: "/dashboard/calendar", dataKey: "shop_history" },
 ]
 
 const DATA_SOURCES = [

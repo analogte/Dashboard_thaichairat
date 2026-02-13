@@ -4,6 +4,7 @@ import dynamic from "next/dynamic"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useMonitor } from "@/lib/monitor-context"
+import { exportCSV } from "@/lib/export"
 import {
   Store,
   RefreshCw,
@@ -14,6 +15,7 @@ import {
   Users,
   ArrowUpRight,
   ArrowDownRight,
+  Download,
 } from "lucide-react"
 
 const DailyChart = dynamic(() => import("@/components/daily-chart"), {
@@ -71,14 +73,26 @@ export default function ShopPage() {
             <p className="text-sm text-muted-foreground">{data.updated_label}</p>
           </div>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-          รีเฟรช
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const daily = h?.daily ?? []
+              exportCSV("shop-daily", ["วันที่", "รายรับ", "รายจ่าย", "กำไร"], daily, ["date", "income", "expense", "profit"])
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <Download className="h-3.5 w-3.5" />
+            CSV
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            รีเฟรช
+          </button>
+        </div>
       </div>
 
       {/* Period KPI Cards */}

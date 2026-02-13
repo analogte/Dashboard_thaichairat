@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { type PayablesData } from "@/lib/api"
 import { useMonitor } from "@/lib/monitor-context"
+import { exportCSV } from "@/lib/export"
 import {
   CreditCard,
   RefreshCw,
   Users,
   Banknote,
   CheckCircle2,
+  Download,
 } from "lucide-react"
 
 function fmtB(n: number | null | undefined) {
@@ -61,14 +63,26 @@ export default function PayablesPage() {
             <p className="text-sm text-muted-foreground">{data.updated_label}</p>
           </div>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-          รีเฟรช
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              exportCSV("payables", ["Supplier", "ยอดหนี้", "ชำระแล้ว", "คงเหลือ"],
+                pay.suppliers, ["supplier", "total_debt", "total_paid", "balance"])
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <Download className="h-3.5 w-3.5" />
+            CSV
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            รีเฟรช
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}

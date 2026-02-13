@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   BarChart3,
   Bell,
+  CalendarDays,
   Newspaper,
   Receipt,
   Settings,
@@ -12,6 +13,7 @@ import {
   Leaf,
   ShoppingBasket,
   Package,
+  PieChart,
   Users,
   CreditCard,
   HandCoins,
@@ -61,6 +63,11 @@ const data = {
       icon: Store,
     },
     {
+      title: "ปฏิทินร้าน",
+      url: "/dashboard/calendar",
+      icon: CalendarDays,
+    },
+    {
       title: "กำไรขาดทุน",
       url: "/dashboard/pnl",
       icon: Receipt,
@@ -69,6 +76,11 @@ const data = {
       title: "สต็อก",
       url: "/dashboard/inventory",
       icon: Package,
+    },
+    {
+      title: "วิเคราะห์สินค้า",
+      url: "/dashboard/analytics",
+      icon: PieChart,
     },
     {
       title: "พนักงาน",

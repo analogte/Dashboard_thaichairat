@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { type PnlMonth } from "@/lib/api"
 import { useMonitor } from "@/lib/monitor-context"
+import { exportCSV } from "@/lib/export"
 import {
   Receipt,
   RefreshCw,
@@ -16,6 +17,7 @@ import {
   BarChart3,
   ArrowUpRight,
   ArrowDownRight,
+  Download,
 } from "lucide-react"
 
 function fmt(n: number | null | undefined) {
@@ -103,14 +105,26 @@ export default function PnlPage() {
             <p className="text-sm text-muted-foreground">{monthLabel(current.month)} — {current.days} วัน | {data.updated_label}</p>
           </div>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-          รีเฟรช
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              exportCSV("pnl", ["เดือน", "วัน", "รายรับ", "ต้นทุน", "ค่าแรง", "ค่าเช่า", "รายจ่ายรวม", "กำไรสุทธิ", "มาร์จิ้น%"],
+                pnl.months, ["month", "days", "income", "cogs", "wages", "rent", "total_expense", "net_profit", "margin_pct"])
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <Download className="h-3.5 w-3.5" />
+            CSV
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            รีเฟรช
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}

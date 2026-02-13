@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { type MarketProduct } from "@/lib/api"
+import { exportCSV } from "@/lib/export"
 import { useMonitor } from "@/lib/monitor-context"
 import {
   ShoppingBasket,
@@ -15,6 +16,7 @@ import {
   TrendingDown,
   ArrowUpRight,
   ArrowDownRight,
+  Download,
 } from "lucide-react"
 
 const MarketPriceChart = dynamic(() => import("@/components/market-price-chart"), { ssr: false })
@@ -120,14 +122,26 @@ export default function MarketPage() {
             <p className="text-sm text-muted-foreground">{ms.date} (กรมการค้าภายใน)</p>
           </div>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-          รีเฟรช
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              exportCSV("market-prices", ["สินค้า", "หมวด", "ราคาต่ำ", "ราคาสูง", "หน่วย", "เปลี่ยน%", "ราคาร้าน"],
+                ms.products, ["name", "category", "dit_min", "dit_max", "dit_unit", "change_pct", "shop_price"])
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <Download className="h-3.5 w-3.5" />
+            CSV
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            รีเฟรช
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}
