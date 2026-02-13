@@ -4,15 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Settings, Server, Database, Clock } from "lucide-react"
 
 export default function SettingsPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://46.225.19.81:8888"
+  const apiUrl =
+    process.env.NEXT_PUBLIC_API_URL || "http://46.225.19.81:8888"
 
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div className="flex items-center gap-3">
-        <Settings className="h-6 w-6" />
+        <div className="rounded-lg bg-accent p-2">
+          <Settings className="h-5 w-5" />
+        </div>
         <div>
           <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-sm text-muted-foreground">Configuration &amp; Info</p>
+          <p className="text-sm text-muted-foreground">
+            Configuration &amp; Info
+          </p>
         </div>
       </div>
 
@@ -24,10 +29,19 @@ export default function SettingsPage() {
               API Connection
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Status</span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Connected
+              </span>
+            </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Endpoint</span>
-              <code className="text-xs bg-muted px-2 py-1 rounded">{apiUrl}</code>
+              <code className="text-xs bg-muted px-2 py-1 rounded">
+                {apiUrl}
+              </code>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Data Source</span>
@@ -43,7 +57,7 @@ export default function SettingsPage() {
               Data Sources
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Shop Data</span>
               <span>Supabase</span>
@@ -70,7 +84,7 @@ export default function SettingsPage() {
               Auto Refresh
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">VPS Cron</span>
               <span>Every 2 hours</span>

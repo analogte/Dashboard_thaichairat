@@ -10,8 +10,6 @@ import {
   TrendingUp,
   Leaf,
 } from "lucide-react"
-import { usePathname } from "next/navigation"
-
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
