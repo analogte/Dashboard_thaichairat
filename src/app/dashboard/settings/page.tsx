@@ -29,6 +29,9 @@ const PAGES = [
   { name: "ราคาตลาด", path: "/dashboard/market", dataKey: "market_stats" },
   { name: "หุ้น", path: "/dashboard/stocks", dataKey: "stocks" },
   { name: "ข่าวสาร", path: "/dashboard/news", dataKey: "news" },
+  { name: "เงินเก็บ", path: "/dashboard/savings", dataKey: "savings_data" },
+  { name: "ระบบ", path: "/dashboard/system", dataKey: "system_health" },
+  { name: "กำไรขาดทุน", path: "/dashboard/pnl", dataKey: "pnl_data" },
 ]
 
 const DATA_SOURCES = [

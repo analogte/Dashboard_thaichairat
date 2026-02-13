@@ -315,6 +315,32 @@ export interface SavingsData {
   history: SavingsHistory[]
 }
 
+export interface PnlBranch {
+  branch: string
+  income: number
+  expense: number
+}
+
+export interface PnlMonth {
+  month: string
+  days: number
+  income: number
+  cogs: number
+  wages: number
+  rent: number
+  total_expense: number
+  gross_profit: number
+  net_profit: number
+  margin_pct: number
+  branches: PnlBranch[]
+}
+
+export interface PnlData {
+  months: PnlMonth[]
+  current_month: string
+  change_pct: number | null
+}
+
 export interface MonitorData {
   updated_at: string
   updated_label: string
@@ -331,6 +357,7 @@ export interface MonitorData {
   credits_data?: CreditsData
   system_health?: SystemHealth
   savings_data?: SavingsData
+  pnl_data?: PnlData
 }
 
 export async function fetchMonitorData(): Promise<MonitorData | null> {

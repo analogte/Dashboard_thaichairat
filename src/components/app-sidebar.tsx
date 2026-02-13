@@ -3,7 +3,9 @@
 import * as React from "react"
 import {
   BarChart3,
+  Bell,
   Newspaper,
+  Receipt,
   Settings,
   Store,
   TrendingUp,
@@ -49,9 +51,19 @@ const data = {
       isActive: true,
     },
     {
+      title: "แจ้งเตือน",
+      url: "/dashboard/alerts",
+      icon: Bell,
+    },
+    {
       title: "ร้านค้า",
       url: "/dashboard/shop",
       icon: Store,
+    },
+    {
+      title: "กำไรขาดทุน",
+      url: "/dashboard/pnl",
+      icon: Receipt,
     },
     {
       title: "สต็อก",
