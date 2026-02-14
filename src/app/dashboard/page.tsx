@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { useMemo } from "react"
+import { useMemo, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useMonitor } from "@/lib/monitor-context"
@@ -155,9 +155,15 @@ export default function DashboardPage() {
   const { data, loading, refresh: load } = useMonitor()
 
   const alerts = useMemo(() => (data ? collectAlerts(data) : []), [data])
-  const dangerCount = alerts.filter((a) => a.severity === "danger").length
-  const warningCount = alerts.filter((a) => a.severity === "warning").length
-  const alertCategories = [...new Set(alerts.map((a) => CATEGORY_LABELS[a.category] || a.category))]
+  const { dangerCount, alertCategories } = useMemo(() => {
+    let danger = 0
+    const cats = new Set<string>()
+    for (const a of alerts) {
+      if (a.severity === "danger") danger++
+      cats.add(CATEGORY_LABELS[a.category] || a.category)
+    }
+    return { dangerCount: danger, alertCategories: [...cats] }
+  }, [alerts])
 
   if (loading && !data) {
     return (
@@ -562,8 +568,10 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {data.market.items.slice(0, 6).map((m) => {
-                const maxPrice = Math.max(...data.market.items.slice(0, 6).map((i) => i.max))
+              {(() => {
+                const items6 = data.market.items.slice(0, 6)
+                const maxPrice = Math.max(...items6.map((i) => i.max))
+                return items6.map((m) => {
                 const pct = maxPrice > 0 ? (m.max / maxPrice) * 100 : 0
                 return (
                   <div key={m.name} className="space-y-1">
@@ -581,7 +589,8 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 )
-              })}
+              })
+              })()}
               {data.market.items.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">ไม่มีข้อมูลราคา</p>
               )}

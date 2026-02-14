@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useMonitor } from "@/lib/monitor-context"
@@ -84,187 +85,72 @@ export default function AlertsPage() {
     )
   }
 
-  // Collect all alerts
-  const alerts: Alert[] = []
+  // Collect all alerts (memoized)
+  const { alerts, dangerCount, warningCount, categories } = useMemo(() => {
+    const list: Alert[] = []
 
-  // 1. Low stock
-  if (data.inventory?.low_stock) {
-    for (const item of data.inventory.low_stock) {
-      alerts.push({
-        severity: "danger",
-        category: "stock",
-        title: `${item.product} เหลือน้อย`,
-        detail: `คงเหลือ ${item.quantity} ${item.unit} (ขั้นต่ำ ${item.min_stock})`,
-      })
-    }
-  }
-
-  // 2. Stock predictions — will run out soon
-  if (data.stock_history?.predictions) {
-    for (const p of data.stock_history.predictions) {
-      if (p.suggest_order) {
-        alerts.push({
-          severity: p.days_until_zero <= 1 ? "danger" : "warning",
-          category: "stock",
-          title: `${p.product} จะหมดใน ${p.days_until_zero.toFixed(0)} วัน`,
-          detail: `คงเหลือ ${p.current_stock.toFixed(1)} ${p.unit} | ขายเฉลี่ย ${p.avg_daily_sold.toFixed(1)} ${p.unit}/วัน`,
-        })
+    if (data.inventory?.low_stock) {
+      for (const item of data.inventory.low_stock) {
+        list.push({ severity: "danger", category: "stock", title: `${item.product} เหลือน้อย`, detail: `คงเหลือ ${item.quantity} ${item.unit} (ขั้นต่ำ ${item.min_stock})` })
       }
     }
-  }
-
-  // 3. High supplier debt
-  if (data.payables_data?.suppliers) {
-    for (const s of data.payables_data.suppliers) {
-      if (s.balance >= 20000) {
-        alerts.push({
-          severity: "danger",
-          category: "payable",
-          title: `${s.supplier} — หนี้ค้างสูง`,
-          detail: `คงเหลือ ${s.balance.toLocaleString()} บาท`,
-        })
-      } else if (s.balance >= 10000) {
-        alerts.push({
-          severity: "warning",
-          category: "payable",
-          title: `${s.supplier} — หนี้ค้างปานกลาง`,
-          detail: `คงเหลือ ${s.balance.toLocaleString()} บาท`,
-        })
+    if (data.stock_history?.predictions) {
+      for (const p of data.stock_history.predictions) {
+        if (p.suggest_order) {
+          list.push({ severity: p.days_until_zero <= 1 ? "danger" : "warning", category: "stock", title: `${p.product} จะหมดใน ${p.days_until_zero.toFixed(0)} วัน`, detail: `คงเหลือ ${p.current_stock.toFixed(1)} ${p.unit} | ขายเฉลี่ย ${p.avg_daily_sold.toFixed(1)} ${p.unit}/วัน` })
+        }
       }
     }
-  }
-
-  // 4. Customer credits
-  if (data.credits_data?.customers) {
-    for (const c of data.credits_data.customers) {
-      if (c.balance >= 5000) {
-        alerts.push({
-          severity: "danger",
-          category: "credit",
-          title: `${c.customer} — ค้างเชื่อมาก`,
-          detail: `คงเหลือ ${c.balance.toLocaleString()} บาท`,
-        })
-      } else if (c.balance >= 2000) {
-        alerts.push({
-          severity: "warning",
-          category: "credit",
-          title: `${c.customer} — ค้างเชื่อปานกลาง`,
-          detail: `คงเหลือ ${c.balance.toLocaleString()} บาท`,
-        })
+    if (data.payables_data?.suppliers) {
+      for (const s of data.payables_data.suppliers) {
+        if (s.balance >= 20000) list.push({ severity: "danger", category: "payable", title: `${s.supplier} — หนี้ค้างสูง`, detail: `คงเหลือ ${s.balance.toLocaleString()} บาท` })
+        else if (s.balance >= 10000) list.push({ severity: "warning", category: "payable", title: `${s.supplier} — หนี้ค้างปานกลาง`, detail: `คงเหลือ ${s.balance.toLocaleString()} บาท` })
       }
     }
-  }
-
-  // 5. Market price volatility
-  if (data.market_stats?.alerts) {
-    for (const a of data.market_stats.alerts) {
-      alerts.push({
-        severity: Math.abs(a.change_pct) >= 20 ? "danger" : "warning",
-        category: "market",
-        title: `${a.name} ราคา${a.direction === "up" ? "ขึ้น" : "ลง"} ${Math.abs(a.change_pct).toFixed(1)}%`,
-        detail: a.direction === "up"
-          ? `${a.prev_min}-${a.prev_max} → ${a.dit_min}-${a.dit_max} (แพงขึ้น)`
-          : `${a.prev_min}-${a.prev_max} → ${a.dit_min}-${a.dit_max} (ถูกลง)`,
-      })
-    }
-  }
-
-  // 6. Wage budget
-  if (data.employee_stats?.monthly_summary) {
-    const pct = data.employee_stats.monthly_summary.budget_used_pct
-    if (pct > 90) {
-      alerts.push({
-        severity: "danger",
-        category: "wage",
-        title: `ค่าแรงใช้ไป ${pct.toFixed(0)}% ของงบ`,
-        detail: `จ่ายแล้ว ${data.employee_stats.monthly_summary.total_wages_paid.toLocaleString()} / ${data.employee_stats.budget.toLocaleString()} บาท — เหลือ ${data.employee_stats.monthly_summary.budget_remaining.toLocaleString()}`,
-      })
-    } else if (pct > 70) {
-      alerts.push({
-        severity: "warning",
-        category: "wage",
-        title: `ค่าแรงใช้ไป ${pct.toFixed(0)}% ของงบ`,
-        detail: `เหลืองบ ${data.employee_stats.monthly_summary.budget_remaining.toLocaleString()} บาท`,
-      })
-    }
-  }
-
-  // 7. Savings risk
-  if (data.savings_data) {
-    if (data.savings_data.risk === "danger") {
-      alerts.push({
-        severity: "danger",
-        category: "savings",
-        title: "เงินเก็บอยู่ในระดับอันตราย",
-        detail: `${data.savings_data.total.toLocaleString()} บาท — ครอบคลุมแค่ ${data.savings_data.cover_days} วัน`,
-      })
-    } else if (data.savings_data.risk === "caution") {
-      alerts.push({
-        severity: "warning",
-        category: "savings",
-        title: "เงินเก็บอยู่ในระดับระวัง",
-        detail: `${data.savings_data.total.toLocaleString()} บาท — ครอบคลุม ${data.savings_data.cover_days} วัน`,
-      })
-    }
-  }
-
-  // 8. System health
-  if (data.system_health) {
-    for (const s of data.system_health.services) {
-      if (s.status !== "running") {
-        alerts.push({
-          severity: "danger",
-          category: "system",
-          title: `${s.name} หยุดทำงาน`,
-          detail: s.description,
-        })
+    if (data.credits_data?.customers) {
+      for (const c of data.credits_data.customers) {
+        if (c.balance >= 5000) list.push({ severity: "danger", category: "credit", title: `${c.customer} — ค้างเชื่อมาก`, detail: `คงเหลือ ${c.balance.toLocaleString()} บาท` })
+        else if (c.balance >= 2000) list.push({ severity: "warning", category: "credit", title: `${c.customer} — ค้างเชื่อปานกลาง`, detail: `คงเหลือ ${c.balance.toLocaleString()} บาท` })
       }
     }
-    for (const p of data.system_health.ports) {
-      if (!p.open) {
-        alerts.push({
-          severity: "danger",
-          category: "system",
-          title: `Port ${p.port} (${p.name}) ปิดอยู่`,
-          detail: "Service อาจล่ม — ตรวจสอบด่วน",
-        })
+    if (data.market_stats?.alerts) {
+      for (const a of data.market_stats.alerts) {
+        list.push({ severity: Math.abs(a.change_pct) >= 20 ? "danger" : "warning", category: "market", title: `${a.name} ราคา${a.direction === "up" ? "ขึ้น" : "ลง"} ${Math.abs(a.change_pct).toFixed(1)}%`, detail: a.direction === "up" ? `${a.prev_min}-${a.prev_max} → ${a.dit_min}-${a.dit_max} (แพงขึ้น)` : `${a.prev_min}-${a.prev_max} → ${a.dit_min}-${a.dit_max} (ถูกลง)` })
       }
     }
-    if (data.system_health.cpu_pct >= 90) {
-      alerts.push({
-        severity: "danger",
-        category: "system",
-        title: `CPU สูง ${data.system_health.cpu_pct}%`,
-        detail: `Load: ${data.system_health.load_avg}`,
-      })
+    if (data.employee_stats?.monthly_summary) {
+      const pct = data.employee_stats.monthly_summary.budget_used_pct
+      if (pct > 90) list.push({ severity: "danger", category: "wage", title: `ค่าแรงใช้ไป ${pct.toFixed(0)}% ของงบ`, detail: `จ่ายแล้ว ${data.employee_stats.monthly_summary.total_wages_paid.toLocaleString()} / ${data.employee_stats.budget.toLocaleString()} บาท — เหลือ ${data.employee_stats.monthly_summary.budget_remaining.toLocaleString()}` })
+      else if (pct > 70) list.push({ severity: "warning", category: "wage", title: `ค่าแรงใช้ไป ${pct.toFixed(0)}% ของงบ`, detail: `เหลืองบ ${data.employee_stats.monthly_summary.budget_remaining.toLocaleString()} บาท` })
     }
-    if (data.system_health.ram_pct >= 90) {
-      alerts.push({
-        severity: "warning",
-        category: "system",
-        title: `RAM สูง ${data.system_health.ram_pct}%`,
-        detail: `${data.system_health.ram_used_mb.toLocaleString()} / ${data.system_health.ram_total_mb.toLocaleString()} MB`,
-      })
+    if (data.savings_data) {
+      if (data.savings_data.risk === "danger") list.push({ severity: "danger", category: "savings", title: "เงินเก็บอยู่ในระดับอันตราย", detail: `${data.savings_data.total.toLocaleString()} บาท — ครอบคลุมแค่ ${data.savings_data.cover_days} วัน` })
+      else if (data.savings_data.risk === "caution") list.push({ severity: "warning", category: "savings", title: "เงินเก็บอยู่ในระดับระวัง", detail: `${data.savings_data.total.toLocaleString()} บาท — ครอบคลุม ${data.savings_data.cover_days} วัน` })
     }
-    if (data.system_health.disk_pct >= 80) {
-      alerts.push({
-        severity: data.system_health.disk_pct >= 90 ? "danger" : "warning",
-        category: "system",
-        title: `Disk เหลือน้อย ${data.system_health.disk_pct}%`,
-        detail: `${data.system_health.disk_used_gb} / ${data.system_health.disk_total_gb} GB`,
-      })
+    if (data.system_health) {
+      for (const s of data.system_health.services) {
+        if (s.status !== "running") list.push({ severity: "danger", category: "system", title: `${s.name} หยุดทำงาน`, detail: s.description })
+      }
+      for (const p of data.system_health.ports) {
+        if (!p.open) list.push({ severity: "danger", category: "system", title: `Port ${p.port} (${p.name}) ปิดอยู่`, detail: "Service อาจล่ม — ตรวจสอบด่วน" })
+      }
+      if (data.system_health.cpu_pct >= 90) list.push({ severity: "danger", category: "system", title: `CPU สูง ${data.system_health.cpu_pct}%`, detail: `Load: ${data.system_health.load_avg}` })
+      if (data.system_health.ram_pct >= 90) list.push({ severity: "warning", category: "system", title: `RAM สูง ${data.system_health.ram_pct}%`, detail: `${data.system_health.ram_used_mb.toLocaleString()} / ${data.system_health.ram_total_mb.toLocaleString()} MB` })
+      if (data.system_health.disk_pct >= 80) list.push({ severity: data.system_health.disk_pct >= 90 ? "danger" : "warning", category: "system", title: `Disk เหลือน้อย ${data.system_health.disk_pct}%`, detail: `${data.system_health.disk_used_gb} / ${data.system_health.disk_total_gb} GB` })
     }
-  }
 
-  // Sort: danger first, then warning, then info
-  const severityOrder: Record<Severity, number> = { danger: 0, warning: 1, info: 2 }
-  alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
+    const severityOrder: Record<Severity, number> = { danger: 0, warning: 1, info: 2 }
+    list.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
 
-  const dangerCount = alerts.filter((a) => a.severity === "danger").length
-  const warningCount = alerts.filter((a) => a.severity === "warning").length
-
-  // Group by category
-  const categories = [...new Set(alerts.map((a) => a.category))]
+    let danger = 0, warning = 0
+    const cats = new Set<Category>()
+    for (const a of list) {
+      if (a.severity === "danger") danger++
+      else if (a.severity === "warning") warning++
+      cats.add(a.category)
+    }
+    return { alerts: list, dangerCount: danger, warningCount: warning, categories: [...cats] }
+  }, [data])
 
   return (
     <div className="p-4 md:p-6 space-y-6">

@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import dynamic from "next/dynamic"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -62,6 +63,16 @@ export default function EmployeesPage() {
 
   const ms = es.monthly_summary
   const employees = data.shop_history?.employees ?? []
+
+  const empTotals = useMemo(() => {
+    let worked = 0, leave = 0, absent = 0
+    for (const e of es.employee_monthly) {
+      worked += e.days_worked
+      leave += e.days_leave
+      absent += e.days_absent
+    }
+    return { worked, leave, absent }
+  }, [es.employee_monthly])
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -233,13 +244,13 @@ export default function EmployeesPage() {
                   <tr className="border-t-2 border-border font-bold">
                     <td className="py-2.5" colSpan={3}>รวม</td>
                     <td className="py-2.5 text-right font-mono text-green-500">
-                      {es.employee_monthly.reduce((s, e) => s + e.days_worked, 0)}
+                      {empTotals.worked}
                     </td>
                     <td className="py-2.5 text-right font-mono text-amber-500">
-                      {es.employee_monthly.reduce((s, e) => s + e.days_leave, 0) || "-"}
+                      {empTotals.leave || "-"}
                     </td>
                     <td className="py-2.5 text-right font-mono text-red-500">
-                      {es.employee_monthly.reduce((s, e) => s + e.days_absent, 0) || "-"}
+                      {empTotals.absent || "-"}
                     </td>
                     <td className="py-2.5 text-right font-mono">{fmtB(ms.total_wages_paid)}</td>
                     <td />

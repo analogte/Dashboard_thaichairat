@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -70,9 +70,11 @@ export default function MarketPage() {
           </CardHeader>
           <CardContent>
             <div className="divide-y">
-              {data.market.items.map((m) => {
+              {(() => {
+                const items = data.market.items
+                const maxPrice = Math.max(...items.map((i) => i.max))
+                return items.map((m) => {
                 const avg = (m.min + m.max) / 2
-                const maxPrice = Math.max(...data.market.items.map((i) => i.max))
                 const pct = maxPrice > 0 ? (avg / maxPrice) * 100 : 0
                 return (
                   <div key={m.name} className="flex items-center gap-4 py-3">
@@ -93,7 +95,8 @@ export default function MarketPage() {
                     </div>
                   </div>
                 )
-              })}
+              })
+              })()}
               {data.market.items.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-8">ไม่มีข้อมูลราคาตลาด</p>
               )}
@@ -105,11 +108,14 @@ export default function MarketPage() {
   }
 
   // New UI with market_stats
-  const filteredProducts: MarketProduct[] = categoryFilter === "ทั้งหมด"
-    ? ms.products
-    : ms.products.filter((p) => p.category === categoryFilter)
+  const filteredProducts = useMemo<MarketProduct[]>(() =>
+    categoryFilter === "ทั้งหมด"
+      ? ms.products
+      : ms.products.filter((p) => p.category === categoryFilter),
+    [ms.products, categoryFilter]
+  )
 
-  const alertSet = new Set(ms.alerts.map((a) => a.name))
+  const alertSet = useMemo(() => new Set(ms.alerts.map((a) => a.name)), [ms.alerts])
 
   return (
     <div className="p-4 md:p-6 space-y-6">

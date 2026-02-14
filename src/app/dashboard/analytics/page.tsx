@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useMonitor } from "@/lib/monitor-context"
@@ -65,28 +66,45 @@ export default function AnalyticsPage() {
     )
   }
 
-  const topSellers = [...sh.top_movers].sort((a, b) => b.total_sold - a.total_sold).slice(0, 10)
-  const topReceived = [...sh.top_movers].sort((a, b) => b.total_received - a.total_received).slice(0, 10)
-  const needOrder = sh.predictions.filter((p) => p.suggest_order)
-  const safeStock = sh.predictions.filter((p) => !p.suggest_order)
+  const topSellers = useMemo(
+    () => [...sh.top_movers].sort((a, b) => b.total_sold - a.total_sold).slice(0, 10),
+    [sh.top_movers]
+  )
+  const topReceived = useMemo(
+    () => [...sh.top_movers].sort((a, b) => b.total_received - a.total_received).slice(0, 10),
+    [sh.top_movers]
+  )
+  const { needOrder, safeStock } = useMemo(() => {
+    const need: typeof sh.predictions = []
+    const safe: typeof sh.predictions = []
+    for (const p of sh.predictions) {
+      if (p.suggest_order) need.push(p)
+      else safe.push(p)
+    }
+    return { needOrder: need, safeStock: safe }
+  }, [sh.predictions])
 
   // Category breakdown
-  const catMap = new Map<string, { sold: number; received: number; count: number }>()
-  for (const m of sh.top_movers) {
-    const cat = m.category || "อื่นๆ"
-    const prev = catMap.get(cat) || { sold: 0, received: 0, count: 0 }
-    catMap.set(cat, {
-      sold: prev.sold + m.total_sold,
-      received: prev.received + m.total_received,
-      count: prev.count + 1,
-    })
-  }
-  const categories = [...catMap.entries()]
-    .map(([name, v]) => ({ name, ...v }))
-    .sort((a, b) => b.sold - a.sold)
-
-  const totalSold = sh.top_movers.reduce((s, m) => s + m.total_sold, 0)
-  const totalReceived = sh.top_movers.reduce((s, m) => s + m.total_received, 0)
+  const { categories, totalSold, totalReceived } = useMemo(() => {
+    const catMap = new Map<string, { sold: number; received: number; count: number }>()
+    let sold = 0
+    let received = 0
+    for (const m of sh.top_movers) {
+      const cat = m.category || "อื่นๆ"
+      const prev = catMap.get(cat) || { sold: 0, received: 0, count: 0 }
+      catMap.set(cat, {
+        sold: prev.sold + m.total_sold,
+        received: prev.received + m.total_received,
+        count: prev.count + 1,
+      })
+      sold += m.total_sold
+      received += m.total_received
+    }
+    const cats = [...catMap.entries()]
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.sold - a.sold)
+    return { categories: cats, totalSold: sold, totalReceived: received }
+  }, [sh.top_movers])
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -287,7 +305,7 @@ export default function AnalyticsPage() {
               {needOrder.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">สต็อกเพียงพอทุกรายการ</p>
               ) : (
-                needOrder.sort((a, b) => a.days_until_zero - b.days_until_zero).map((p) => (
+                [...needOrder].sort((a, b) => a.days_until_zero - b.days_until_zero).map((p) => (
                   <div key={p.product} className="flex items-center justify-between text-sm border-b last:border-0 pb-2 last:pb-0">
                     <div>
                       <span className="font-medium">{p.product}</span>
@@ -356,7 +374,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-              {safeStock.sort((a, b) => a.days_until_zero - b.days_until_zero).map((p) => (
+              {[...safeStock].sort((a, b) => a.days_until_zero - b.days_until_zero).map((p) => (
                 <div key={p.product} className="flex items-center justify-between text-sm px-3 py-2 rounded-md bg-muted/50">
                   <span>{p.product}</span>
                   <span className="text-xs text-muted-foreground">

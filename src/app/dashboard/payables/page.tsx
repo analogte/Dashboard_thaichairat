@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { type PayablesData } from "@/lib/api"
@@ -49,8 +50,15 @@ export default function PayablesPage() {
     )
   }
 
-  const totalDebt = pay.suppliers.reduce((s, x) => s + x.total_debt, 0)
-  const totalPaid = pay.suppliers.reduce((s, x) => s + x.total_paid, 0)
+  const { totalDebt, totalPaid, sortedSuppliers } = useMemo(() => {
+    let debt = 0, paid = 0
+    for (const s of pay.suppliers) {
+      debt += s.total_debt
+      paid += s.total_paid
+    }
+    const sorted = [...pay.suppliers].sort((a, b) => b.balance - a.balance)
+    return { totalDebt: debt, totalPaid: paid, sortedSuppliers: sorted }
+  }, [pay.suppliers])
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -154,9 +162,7 @@ export default function PayablesPage() {
                 </tr>
               </thead>
               <tbody>
-                {pay.suppliers
-                  .sort((a, b) => b.balance - a.balance)
-                  .map((s, i) => (
+                {sortedSuppliers.map((s, i) => (
                     <tr
                       key={s.supplier}
                       className={`border-b border-border/50 last:border-0 ${s.balance > 0 ? "" : "opacity-60"}`}

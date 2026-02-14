@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useMonitor } from "@/lib/monitor-context"
@@ -39,11 +40,15 @@ export default function StocksPage() {
   }
 
   const stocks = data.stocks
-  const upCount = stocks.filter((s) => s.change > 0).length
-  const downCount = stocks.filter((s) => s.change < 0).length
-  const avgChange = stocks.length > 0
-    ? stocks.reduce((sum, s) => sum + s.change, 0) / stocks.length
-    : 0
+  const { upCount, downCount, avgChange } = useMemo(() => {
+    let up = 0, down = 0, sum = 0
+    for (const s of stocks) {
+      if (s.change > 0) up++
+      else if (s.change < 0) down++
+      sum += s.change
+    }
+    return { upCount: up, downCount: down, avgChange: stocks.length > 0 ? sum / stocks.length : 0 }
+  }, [stocks])
 
   return (
     <div className="p-4 md:p-6 space-y-6">

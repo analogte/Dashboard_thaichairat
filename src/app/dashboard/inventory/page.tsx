@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import dynamic from "next/dynamic"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -67,11 +67,12 @@ export default function InventoryPage() {
 
   const sh: StockHistory | undefined = data.stock_history
 
-  const filteredItems: InventoryItem[] = filter === "ทั้งหมด"
-    ? inv.items
-    : inv.items.filter((i) => i.category === filter)
+  const filteredItems = useMemo<InventoryItem[]>(
+    () => filter === "ทั้งหมด" ? inv.items : inv.items.filter((i) => i.category === filter),
+    [inv.items, filter]
+  )
 
-  const lowSet = new Set(inv.low_stock.map((l) => l.product))
+  const lowSet = useMemo(() => new Set(inv.low_stock.map((l) => l.product)), [inv.low_stock])
 
   const updatedTime = inv.summary.updated
     ? new Date(inv.summary.updated).toLocaleString("th-TH", {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useMonitor } from "@/lib/monitor-context"
@@ -48,49 +48,55 @@ export default function CalendarPage() {
   const daily = data.shop_history?.daily ?? []
 
   // Build map: date string -> record
-  const dayMap = new Map(daily.map((d) => [d.date, d]))
+  const dayMap = useMemo(() => new Map(daily.map((d) => [d.date, d])), [daily])
 
   // Calendar math
-  const firstDay = new Date(year, month - 1, 1)
-  const startDow = firstDay.getDay() // 0=Sun
-  const daysInMonth = new Date(year, month, 0).getDate()
-
-  // Generate weeks
-  const weeks: (number | null)[][] = []
-  let week: (number | null)[] = Array(startDow).fill(null)
-  for (let d = 1; d <= daysInMonth; d++) {
-    week.push(d)
-    if (week.length === 7) {
-      weeks.push(week)
-      week = []
+  const weeks = useMemo(() => {
+    const firstDay = new Date(year, month - 1, 1)
+    const startDow = firstDay.getDay()
+    const dim = new Date(year, month, 0).getDate()
+    const result: (number | null)[][] = []
+    let w: (number | null)[] = Array(startDow).fill(null)
+    for (let d = 1; d <= dim; d++) {
+      w.push(d)
+      if (w.length === 7) { result.push(w); w = [] }
     }
-  }
-  if (week.length > 0) {
-    while (week.length < 7) week.push(null)
-    weeks.push(week)
-  }
+    if (w.length > 0) {
+      while (w.length < 7) w.push(null)
+      result.push(w)
+    }
+    return result
+  }, [year, month])
 
-  function dateStr(d: number) {
-    return `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`
-  }
+  const dateStr = useCallback((d: number) =>
+    `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+    [year, month]
+  )
 
-  function prevMonth() {
+  const prevMonth = useCallback(() => {
     if (month === 1) { setYear(year - 1); setMonth(12) }
     else setMonth(month - 1)
     setSelectedDate(null)
-  }
+  }, [month, year])
 
-  function nextMonth() {
+  const nextMonth = useCallback(() => {
     if (month === 12) { setYear(year + 1); setMonth(1) }
     else setMonth(month + 1)
     setSelectedDate(null)
-  }
+  }, [month, year])
 
   // Monthly summary for current view
-  const monthDays = daily.filter((d) => d.date.startsWith(`${year}-${String(month).padStart(2, "0")}`))
-  const monthIncome = monthDays.reduce((s, d) => s + d.income, 0)
-  const monthExpense = monthDays.reduce((s, d) => s + d.expense, 0)
-  const monthProfit = monthDays.reduce((s, d) => s + d.profit, 0)
+  const { monthDays, monthIncome, monthExpense, monthProfit } = useMemo(() => {
+    const prefix = `${year}-${String(month).padStart(2, "0")}`
+    const days = daily.filter((d) => d.date.startsWith(prefix))
+    let income = 0, expense = 0, profit = 0
+    for (const d of days) {
+      income += d.income
+      expense += d.expense
+      profit += d.profit
+    }
+    return { monthDays: days, monthIncome: income, monthExpense: expense, monthProfit: profit }
+  }, [daily, year, month])
 
   const selected = selectedDate ? dayMap.get(selectedDate) : null
 

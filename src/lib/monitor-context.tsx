@@ -31,20 +31,25 @@ export function MonitorProvider({ children }: { children: ReactNode }) {
   const hasLoaded = useRef(false)
 
   const refresh = useCallback(async () => {
-    // Only show loading spinner on first load or manual refresh when no data
+    // Only show loading spinner on first load
     if (!hasLoaded.current) {
       setLoading(true)
     }
-    const d = await fetchMonitorData()
-    if (d) {
-      const hash = d.updated_at
-      if (hash !== lastHash.current) {
-        lastHash.current = hash
-        setData(d)
+    try {
+      const d = await fetchMonitorData()
+      if (d) {
+        const hash = d.updated_at
+        if (hash !== lastHash.current) {
+          lastHash.current = hash
+          setData(d)
+        }
+      }
+    } finally {
+      if (!hasLoaded.current) {
+        hasLoaded.current = true
+        setLoading(false)
       }
     }
-    hasLoaded.current = true
-    setLoading(false)
   }, [])
 
   useEffect(() => {

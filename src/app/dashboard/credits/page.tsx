@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { type CreditsData } from "@/lib/api"
@@ -59,8 +60,15 @@ export default function CreditsPage() {
     )
   }
 
-  const totalCredit = cred.customers.reduce((s, x) => s + x.total_credit, 0)
-  const totalPaid = cred.customers.reduce((s, x) => s + x.total_paid, 0)
+  const { totalCredit, totalPaid, sortedCustomers } = useMemo(() => {
+    let credit = 0, paid = 0
+    for (const c of cred.customers) {
+      credit += c.total_credit
+      paid += c.total_paid
+    }
+    const sorted = [...cred.customers].sort((a, b) => b.balance - a.balance)
+    return { totalCredit: credit, totalPaid: paid, sortedCustomers: sorted }
+  }, [cred.customers])
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -164,9 +172,7 @@ export default function CreditsPage() {
                 </tr>
               </thead>
               <tbody>
-                {cred.customers
-                  .sort((a, b) => b.balance - a.balance)
-                  .map((c, i) => (
+                {sortedCustomers.map((c, i) => (
                     <tr
                       key={c.customer}
                       className={`border-b border-border/50 last:border-0 ${c.balance > 0 ? "" : "opacity-60"}`}
