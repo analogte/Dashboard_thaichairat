@@ -1,10 +1,13 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { fetchMonitorData } from "@/lib/api"
 import { useMonitor } from "@/lib/monitor-context"
+import { useTheme } from "@/lib/theme-context"
+import { useI18n, type Locale } from "@/lib/i18n"
+import { loadSettings, saveSettings, getDefaults, type DashboardSettings } from "@/lib/settings-store"
 import {
   Settings,
   Server,
@@ -15,6 +18,12 @@ import {
   XCircle,
   LayoutDashboard,
   Wifi,
+  Sun,
+  Moon,
+  Monitor,
+  Globe,
+  Bell,
+  RotateCcw,
 } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://46.225.19.81:8888"
@@ -34,6 +43,7 @@ const PAGES = [
   { name: "กำไรขาดทุน", path: "/dashboard/pnl", dataKey: "pnl_data" },
   { name: "วิเคราะห์สินค้า", path: "/dashboard/analytics", dataKey: "stock_history" },
   { name: "ปฏิทินร้าน", path: "/dashboard/calendar", dataKey: "shop_history" },
+  { name: "เปรียบเทียบสาขา", path: "/dashboard/compare", dataKey: "shop" },
 ]
 
 const DATA_SOURCES = [
@@ -44,10 +54,37 @@ const DATA_SOURCES = [
   { name: "ข่าวสาร", source: "Brave Search" },
 ]
 
+const THEME_OPTIONS = [
+  { value: "dark" as const, label: "มืด", icon: Moon },
+  { value: "light" as const, label: "สว่าง", icon: Sun },
+  { value: "system" as const, label: "ตามระบบ", icon: Monitor },
+]
+
+const LANG_OPTIONS: { value: Locale; label: string }[] = [
+  { value: "th", label: "ไทย" },
+  { value: "en", label: "English" },
+]
+
+const REFRESH_OPTIONS = [
+  { value: 1, label: "1 นาที" },
+  { value: 3, label: "3 นาที" },
+  { value: 5, label: "5 นาที" },
+  { value: 10, label: "10 นาที" },
+  { value: 15, label: "15 นาที" },
+]
+
 export default function SettingsPage() {
   const { data, loading, refresh } = useMonitor()
+  const { theme, setTheme } = useTheme()
+  const { locale, setLocale } = useI18n()
   const [pingMs, setPingMs] = useState<number | null>(null)
   const [pinging, setPinging] = useState(false)
+  const [settings, setSettings] = useState<DashboardSettings>(getDefaults)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    setSettings(loadSettings())
+  }, [])
 
   const testPing = useCallback(async () => {
     setPinging(true)
@@ -58,6 +95,30 @@ export default function SettingsPage() {
     setPinging(false)
     refresh()
   }, [refresh])
+
+  const handleSaveSettings = useCallback(() => {
+    saveSettings(settings)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }, [settings])
+
+  const handleResetDefaults = useCallback(() => {
+    const defaults = getDefaults()
+    setSettings(defaults)
+    saveSettings(defaults)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }, [])
+
+  const updateThreshold = useCallback(
+    (key: keyof DashboardSettings["alertThresholds"], value: number) => {
+      setSettings((prev) => ({
+        ...prev,
+        alertThresholds: { ...prev.alertThresholds, [key]: value },
+      }))
+    },
+    [],
+  )
 
   const serverOnline = data !== null
 
@@ -92,6 +153,158 @@ export default function SettingsPage() {
           ทดสอบ
         </button>
       </div>
+
+      {/* Appearance & Preferences */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Theme */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sun className="h-4 w-4" />
+              ธีม
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              {THEME_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setTheme(opt.value)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm transition-colors flex-1 justify-center ${
+                    theme === opt.value
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border text-muted-foreground hover:border-foreground/20"
+                  }`}
+                  aria-pressed={theme === opt.value}
+                >
+                  <opt.icon className="h-4 w-4" />
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Language */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              ภาษา
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              {LANG_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setLocale(opt.value)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm transition-colors flex-1 justify-center ${
+                    locale === opt.value
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border text-muted-foreground hover:border-foreground/20"
+                  }`}
+                  aria-pressed={locale === opt.value}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Refresh Interval */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            ความถี่รีเฟรช
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {REFRESH_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSettings((prev) => ({ ...prev, refreshInterval: opt.value }))}
+                className={`px-4 py-2 rounded-lg border text-sm transition-colors ${
+                  settings.refreshInterval === opt.value
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border text-muted-foreground hover:border-foreground/20"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Alert Thresholds */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            เกณฑ์การแจ้งเตือน
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleResetDefaults}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="h-3 w-3" />
+              ค่าเริ่มต้น
+            </button>
+            <button
+              onClick={handleSaveSettings}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors ${
+                saved
+                  ? "bg-green-500/10 text-green-500 border border-green-500/20"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+              }`}
+            >
+              {saved ? (
+                <>
+                  <CheckCircle2 className="h-3 w-3" />
+                  บันทึกแล้ว
+                </>
+              ) : (
+                "บันทึก"
+              )}
+            </button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[
+              { key: "debtWarning" as const, label: "หนี้ supplier เตือน (฿)", color: "amber" },
+              { key: "debtDanger" as const, label: "หนี้ supplier อันตราย (฿)", color: "red" },
+              { key: "creditWarning" as const, label: "ลูกหนี้ เตือน (฿)", color: "amber" },
+              { key: "creditDanger" as const, label: "ลูกหนี้ อันตราย (฿)", color: "red" },
+              { key: "wageBudgetWarning" as const, label: "งบค่าแรง เตือน (%)", color: "amber" },
+              { key: "wageBudgetDanger" as const, label: "งบค่าแรง อันตราย (%)", color: "red" },
+            ].map((field) => (
+              <div key={field.key} className="space-y-1.5">
+                <label className="text-xs text-muted-foreground" htmlFor={field.key}>
+                  {field.label}
+                </label>
+                <input
+                  id={field.key}
+                  type="number"
+                  value={settings.alertThresholds[field.key]}
+                  onChange={(e) => updateThreshold(field.key, Number(e.target.value))}
+                  className={`w-full px-3 py-2 rounded-md border bg-background text-sm font-mono focus:outline-none focus:ring-2 ${
+                    field.color === "red"
+                      ? "focus:ring-red-500/30 border-red-500/20"
+                      : "focus:ring-amber-500/30 border-amber-500/20"
+                  }`}
+                />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Server Status */}
       <Card className={`border-t-4 ${serverOnline === true ? "border-t-green-500" : serverOnline === false ? "border-t-red-500" : "border-t-muted"}`}>

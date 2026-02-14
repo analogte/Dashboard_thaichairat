@@ -19,6 +19,7 @@ import {
   HandCoins,
   Monitor,
   PiggyBank,
+  GitCompareArrows,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -116,6 +117,11 @@ const data = {
       title: "ข่าวสาร",
       url: "/dashboard/news",
       icon: Newspaper,
+    },
+    {
+      title: "เปรียบเทียบสาขา",
+      url: "/dashboard/compare",
+      icon: GitCompareArrows,
     },
     {
       title: "ระบบ",
