@@ -1,10 +1,13 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { fetchMonitorData } from "@/lib/api"
 import { useMonitor } from "@/lib/monitor-context"
+import { hasPin, setPin, removePin, verifyPin } from "@/lib/pin-utils"
 import {
   Settings,
   Server,
@@ -15,6 +18,7 @@ import {
   XCircle,
   LayoutDashboard,
   Wifi,
+  Lock,
 } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://46.225.19.81:8888"
@@ -48,6 +52,40 @@ export default function SettingsPage() {
   const { data, loading, refresh } = useMonitor()
   const [pingMs, setPingMs] = useState<number | null>(null)
   const [pinging, setPinging] = useState(false)
+  const [pinEnabled, setPinEnabled] = useState(false)
+  const [pinAction, setPinAction] = useState<"none" | "change" | "remove">("none")
+  const [oldPin, setOldPin] = useState("")
+  const [newPin, setNewPin] = useState("")
+  const [pinMsg, setPinMsg] = useState("")
+
+  useEffect(() => {
+    setPinEnabled(hasPin())
+  }, [])
+
+  async function handlePinChange() {
+    if (pinEnabled) {
+      const ok = await verifyPin(oldPin)
+      if (!ok) { setPinMsg("PIN เดิมไม่ถูกต้อง"); return }
+    }
+    if (newPin.length < 4) { setPinMsg("PIN ต้องมีอย่างน้อย 4 หลัก"); return }
+    await setPin(newPin)
+    setPinEnabled(true)
+    setPinAction("none")
+    setOldPin(""); setNewPin("")
+    setPinMsg("เปลี่ยน PIN สำเร็จ")
+    setTimeout(() => setPinMsg(""), 2000)
+  }
+
+  async function handlePinRemove() {
+    const ok = await verifyPin(oldPin)
+    if (!ok) { setPinMsg("PIN ไม่ถูกต้อง"); return }
+    removePin()
+    setPinEnabled(false)
+    setPinAction("none")
+    setOldPin("")
+    setPinMsg("ลบ PIN สำเร็จ")
+    setTimeout(() => setPinMsg(""), 2000)
+  }
 
   const testPing = useCallback(async () => {
     setPinging(true)
@@ -239,6 +277,72 @@ export default function SettingsPage() {
               <span className="text-muted-foreground">ดึงราคาตลาด DIT</span>
               <span>ทุกวัน 06:00</span>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* PIN Lock */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              PIN ล็อกข้อมูลส่วนตัว
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">สถานะ</span>
+              <Badge variant={pinEnabled ? "default" : "outline"}>
+                {pinEnabled ? "เปิดใช้งาน" : "ปิด"}
+              </Badge>
+            </div>
+            {pinMsg && <p className="text-sm text-green-600">{pinMsg}</p>}
+            {pinAction === "none" ? (
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setPinAction("change")}>
+                  {pinEnabled ? "เปลี่ยน PIN" : "ตั้ง PIN"}
+                </Button>
+                {pinEnabled && (
+                  <Button size="sm" variant="outline" onClick={() => setPinAction("remove")}>
+                    ลบ PIN
+                  </Button>
+                )}
+              </div>
+            ) : pinAction === "change" ? (
+              <div className="space-y-2">
+                {pinEnabled && (
+                  <Input
+                    type="password" inputMode="numeric" maxLength={6}
+                    placeholder="PIN เดิม" value={oldPin}
+                    onChange={(e) => setOldPin(e.target.value.replace(/\D/g, ""))}
+                  />
+                )}
+                <Input
+                  type="password" inputMode="numeric" maxLength={6}
+                  placeholder="PIN ใหม่ (4-6 หลัก)" value={newPin}
+                  onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handlePinChange}>บันทึก</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setPinAction("none"); setOldPin(""); setNewPin(""); setPinMsg("") }}>
+                    ยกเลิก
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Input
+                  type="password" inputMode="numeric" maxLength={6}
+                  placeholder="ใส่ PIN เพื่อยืนยันการลบ" value={oldPin}
+                  onChange={(e) => setOldPin(e.target.value.replace(/\D/g, ""))}
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" variant="destructive" onClick={handlePinRemove}>ยืนยันลบ</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setPinAction("none"); setOldPin(""); setPinMsg("") }}>
+                    ยกเลิก
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -5,10 +5,12 @@ import {
   BarChart3,
   Bell,
   CalendarDays,
+  CalendarCheck,
   Newspaper,
   Receipt,
   Settings,
   Store,
+  Target,
   TrendingUp,
   Leaf,
   ShoppingBasket,
@@ -19,6 +21,11 @@ import {
   HandCoins,
   Monitor,
   PiggyBank,
+  Wallet,
+  LayoutDashboard,
+  Gem,
+  Heart,
+  ListTodo,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -128,6 +135,17 @@ const data = {
       icon: Settings,
     },
   ],
+  navPersonal: [
+    { title: "ภาพรวมชีวิต", url: "/dashboard/personal", icon: LayoutDashboard },
+    { title: "รายรับ-รายจ่าย", url: "/dashboard/personal/finance", icon: Wallet },
+    { title: "งบเดือน", url: "/dashboard/personal/budget", icon: Target },
+    { title: "สรุปรายเดือน", url: "/dashboard/personal/summary", icon: BarChart3 },
+    { title: "ตารางชีวิต", url: "/dashboard/personal/routine", icon: CalendarCheck },
+    { title: "เป้าหมายออม", url: "/dashboard/personal/savings", icon: Gem },
+    { title: "สุขภาพ", url: "/dashboard/personal/health", icon: Heart },
+    { title: "สิ่งที่ต้องทำ", url: "/dashboard/personal/todos", icon: ListTodo },
+    { title: "ปฏิทินส่วนตัว", url: "/dashboard/personal/calendar", icon: CalendarDays },
+  ],
 }
 
 export const AppSidebar = React.memo(function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -138,6 +156,7 @@ export const AppSidebar = React.memo(function AppSidebar({ ...props }: React.Com
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
+        <NavMain items={data.navPersonal} label="ชีวิตส่วนตัว" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

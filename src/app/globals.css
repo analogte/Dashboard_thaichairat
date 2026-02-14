@@ -146,3 +146,26 @@
 [data-slot="sidebar-wrapper"][data-transitioning] [data-slot="sidebar-container"] > div {
   transition: width 200ms linear, left 200ms linear, right 200ms linear !important;
 }
+
+/* Print styles */
+@media print {
+  /* Hide everything except print-only content */
+  body > * {
+    visibility: hidden;
+  }
+  .print-only {
+    visibility: visible !important;
+    display: block !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+  /* Hide sidebar, header, and navigation */
+  [data-slot="sidebar-wrapper"],
+  [data-slot="sidebar-container"],
+  header,
+  nav {
+    display: none !important;
+  }
+}

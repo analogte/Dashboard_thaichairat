@@ -14,6 +14,7 @@ import {
 
 export function NavMain({
   items,
+  label = "เมนู",
 }: {
   items: {
     title: string
@@ -21,12 +22,13 @@ export function NavMain({
     icon?: LucideIcon
     isActive?: boolean
   }[]
+  label?: string
 }) {
   const pathname = usePathname()
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>เมนู</SidebarGroupLabel>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const isActive = pathname === item.url || (item.url !== "/dashboard" && pathname.startsWith(item.url))
