@@ -151,6 +151,10 @@ export default function SavingsPage() {
                   key={goal.id}
                   goal={goal}
                   onAddMoney={handleAddMoney}
+                  onEdit={async (id, updates) => {
+                    await updateSavingsGoal(id, updates)
+                    load()
+                  }}
                   onDelete={handleDelete}
                 />
               ))}

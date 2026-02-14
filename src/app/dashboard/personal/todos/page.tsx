@@ -60,6 +60,11 @@ export default function TodosPage() {
     load()
   }
 
+  async function handleEdit(id: number, updates: Partial<PersonalTodo>) {
+    await updateTodo(id, updates)
+    load()
+  }
+
   async function handleDelete(id: number) {
     setTodos((prev) => prev.filter((t) => t.id !== id))
     await deleteTodo(id)
@@ -162,6 +167,7 @@ export default function TodosPage() {
                   key={todo.id}
                   todo={todo}
                   onToggle={handleToggle}
+                  onEdit={handleEdit}
                   onDelete={handleDelete}
                 />
               ))}

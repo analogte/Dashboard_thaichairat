@@ -3,17 +3,27 @@
 import { useCallback, useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { MonthSelector } from "@/components/personal/month-selector"
 import { TransactionForm } from "@/components/personal/transaction-form"
 import {
   getTransactions,
   addTransaction,
+  updateTransaction,
   deleteTransaction,
   toThaiMonth,
   toThaiDate,
 } from "@/lib/personal-api"
 import type { PersonalTransaction } from "@/lib/personal-types"
-import { Trash2, Download, Store } from "lucide-react"
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/lib/personal-types"
+import { Trash2, Download, Store, Pencil, Check, X } from "lucide-react"
 import { exportCSV } from "@/lib/export"
 import { FavoritesBar } from "@/components/personal/favorites-bar"
 import { useMonitor } from "@/lib/monitor-context"
@@ -23,6 +33,8 @@ export default function FinancePage() {
   const [transactions, setTransactions] = useState<PersonalTransaction[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editData, setEditData] = useState({ amount: "", category: "", note: "", type: "" as "income" | "expense" })
   const { data: monitorData } = useMonitor()
 
   const load = useCallback(async () => {
@@ -63,6 +75,32 @@ export default function FinancePage() {
   async function handleDelete(id: number) {
     await deleteTransaction(id)
     load()
+  }
+
+  function startEdit(tx: PersonalTransaction) {
+    setEditingId(tx.id)
+    setEditData({
+      amount: String(tx.amount),
+      category: tx.category,
+      note: tx.note,
+      type: tx.type,
+    })
+  }
+
+  async function saveEdit() {
+    if (editingId === null) return
+    await updateTransaction(editingId, {
+      amount: parseFloat(editData.amount),
+      category: editData.category,
+      note: editData.note,
+      type: editData.type,
+    })
+    setEditingId(null)
+    load()
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
   }
 
   async function handleSyncShop() {
@@ -231,31 +269,89 @@ export default function FinancePage() {
                               key={tx.id}
                               className="border-b last:border-0 hover:bg-muted/50"
                             >
-                              <td className="py-2 pr-3">
-                                <span
-                                  className={`inline-block w-2 h-2 rounded-full mr-2 ${tx.type === "income" ? "bg-green-500" : "bg-red-500"}`}
-                                />
-                                {tx.category}
-                              </td>
-                              <td className="py-2 pr-3 text-muted-foreground">
-                                {tx.note}
-                              </td>
-                              <td
-                                className={`py-2 pr-3 text-right font-medium whitespace-nowrap ${tx.type === "income" ? "text-green-600" : "text-red-500"}`}
-                              >
-                                {tx.type === "income" ? "+" : "-"}
-                                {fmt(Number(tx.amount))} ฿
-                              </td>
-                              <td className="py-2 w-8">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-red-500"
-                                  onClick={() => handleDelete(tx.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </td>
+                              {editingId === tx.id ? (
+                                <>
+                                  <td className="py-2 pr-2">
+                                    <Select value={editData.type} onValueChange={(v) => {
+                                      setEditData({ ...editData, type: v as "income" | "expense", category: "" })
+                                    }}>
+                                      <SelectTrigger className="h-8 w-[100px]"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="income">รายรับ</SelectItem>
+                                        <SelectItem value="expense">รายจ่าย</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </td>
+                                  <td className="py-2 pr-2">
+                                    <Select value={editData.category} onValueChange={(v) => setEditData({ ...editData, category: v })}>
+                                      <SelectTrigger className="h-8 w-[120px]"><SelectValue placeholder="หมวด" /></SelectTrigger>
+                                      <SelectContent>
+                                        {(editData.type === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map((c) => (
+                                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </td>
+                                  <td className="py-2 pr-2">
+                                    <Input
+                                      type="number" step="0.01" className="h-8 w-[100px]"
+                                      value={editData.amount}
+                                      onChange={(e) => setEditData({ ...editData, amount: e.target.value })}
+                                    />
+                                  </td>
+                                  <td className="py-2 pr-2">
+                                    <Input
+                                      className="h-8 w-[120px]" placeholder="หมายเหตุ"
+                                      value={editData.note}
+                                      onChange={(e) => setEditData({ ...editData, note: e.target.value })}
+                                    />
+                                  </td>
+                                  <td className="py-2 whitespace-nowrap">
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600" onClick={saveEdit}>
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={cancelEdit}>
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className="py-2 pr-3">
+                                    <span
+                                      className={`inline-block w-2 h-2 rounded-full mr-2 ${tx.type === "income" ? "bg-green-500" : "bg-red-500"}`}
+                                    />
+                                    {tx.category}
+                                  </td>
+                                  <td className="py-2 pr-3 text-muted-foreground">
+                                    {tx.note}
+                                  </td>
+                                  <td
+                                    className={`py-2 pr-3 text-right font-medium whitespace-nowrap ${tx.type === "income" ? "text-green-600" : "text-red-500"}`}
+                                  >
+                                    {tx.type === "income" ? "+" : "-"}
+                                    {fmt(Number(tx.amount))} ฿
+                                  </td>
+                                  <td className="py-2 whitespace-nowrap">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-muted-foreground hover:text-blue-500"
+                                      onClick={() => startEdit(tx)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-muted-foreground hover:text-red-500"
+                                      onClick={() => handleDelete(tx.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </td>
+                                </>
+                              )}
                             </tr>
                           ))}
                         </tbody>

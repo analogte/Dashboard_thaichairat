@@ -46,6 +46,18 @@ export async function addTransaction(
   return data as PersonalTransaction
 }
 
+export async function updateTransaction(id: number, updates: Partial<Omit<PersonalTransaction, "id" | "created_at">>) {
+  const { data, error } = await supabase
+    .from("personal_transactions")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as PersonalTransaction
+}
+
 export async function deleteTransaction(id: number) {
   const { error } = await supabase
     .from("personal_transactions")
@@ -195,6 +207,18 @@ export async function addFavorite(fav: Omit<PersonalFavorite, "id" | "created_at
   return data as PersonalFavorite
 }
 
+export async function updateFavorite(id: number, updates: Partial<Omit<PersonalFavorite, "id" | "created_at">>) {
+  const { data, error } = await supabase
+    .from("personal_favorites")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as PersonalFavorite
+}
+
 export async function deleteFavorite(id: number) {
   const { error } = await supabase
     .from("personal_favorites")
@@ -271,6 +295,15 @@ export async function upsertHealth(record: Omit<PersonalHealth, "id" | "created_
 
   if (error) throw error
   return data as PersonalHealth
+}
+
+export async function deleteHealth(id: number) {
+  const { error } = await supabase
+    .from("personal_health")
+    .delete()
+    .eq("id", id)
+
+  if (error) throw error
 }
 
 // ==================== Todos ====================

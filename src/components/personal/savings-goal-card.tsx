@@ -4,18 +4,23 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Pencil, Check, X } from "lucide-react"
 import type { PersonalSavingsGoal } from "@/lib/personal-types"
 
 interface SavingsGoalCardProps {
   goal: PersonalSavingsGoal
   onAddMoney: (id: number, amount: number) => Promise<void>
+  onEdit: (id: number, updates: Partial<PersonalSavingsGoal>) => Promise<void>
   onDelete: (id: number) => Promise<void>
 }
 
-export function SavingsGoalCard({ goal, onAddMoney, onDelete }: SavingsGoalCardProps) {
+export function SavingsGoalCard({ goal, onAddMoney, onEdit, onDelete }: SavingsGoalCardProps) {
   const [addAmount, setAddAmount] = useState("")
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState(goal.name)
+  const [editTarget, setEditTarget] = useState(String(goal.target_amount))
+  const [editDeadline, setEditDeadline] = useState(goal.deadline || "")
 
   const progress = goal.target_amount > 0
     ? Math.min(100, Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100))
@@ -32,24 +37,68 @@ export function SavingsGoalCard({ goal, onAddMoney, onDelete }: SavingsGoalCardP
     setAdding(false)
   }
 
+  async function handleSaveEdit() {
+    await onEdit(goal.id, {
+      name: editName,
+      target_amount: parseFloat(editTarget),
+      deadline: editDeadline || null,
+    })
+    setEditing(false)
+  }
+
   return (
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{goal.name}</CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-red-500"
-            onClick={() => onDelete(goal.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {editing ? (
+            <Input
+              value={editName} onChange={(e) => setEditName(e.target.value)}
+              className="h-8 text-base font-semibold"
+            />
+          ) : (
+            <CardTitle className="text-base">{goal.name}</CardTitle>
+          )}
+          <div className="flex gap-1 shrink-0 ml-2">
+            {editing ? (
+              <>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600" onClick={handleSaveEdit}>
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setEditing(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-500"
+                  onClick={() => { setEditing(true); setEditName(goal.name); setEditTarget(String(goal.target_amount)); setEditDeadline(goal.deadline || "") }}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-500"
+                  onClick={() => onDelete(goal.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-        {goal.deadline && (
-          <p className="text-xs text-muted-foreground">
-            ภายใน {new Date(goal.deadline).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })}
-          </p>
+        {editing ? (
+          <div className="flex gap-2 mt-1">
+            <div className="space-y-1 flex-1">
+              <label className="text-xs text-muted-foreground">เป้าหมาย (฿)</label>
+              <Input type="number" value={editTarget} onChange={(e) => setEditTarget(e.target.value)} className="h-8" />
+            </div>
+            <div className="space-y-1 flex-1">
+              <label className="text-xs text-muted-foreground">กำหนด</label>
+              <Input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} className="h-8" />
+            </div>
+          </div>
+        ) : (
+          goal.deadline && (
+            <p className="text-xs text-muted-foreground">
+              ภายใน {new Date(goal.deadline).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })}
+            </p>
+          )
         )}
       </CardHeader>
       <CardContent className="space-y-3">

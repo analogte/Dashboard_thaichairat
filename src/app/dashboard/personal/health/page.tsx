@@ -5,8 +5,8 @@ import { useCallback, useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Heart } from "lucide-react"
-import { getHealthRecords, upsertHealth } from "@/lib/personal-api"
+import { Heart, Pencil, Trash2 } from "lucide-react"
+import { getHealthRecords, upsertHealth, deleteHealth, toThaiDate } from "@/lib/personal-api"
 import type { PersonalHealth } from "@/lib/personal-types"
 
 const HealthChart = dynamic(
@@ -28,6 +28,7 @@ export default function HealthPage() {
   const [sugar, setSugar] = useState("")
   const [sleep, setSleep] = useState("")
   const [note, setNote] = useState("")
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -38,17 +39,6 @@ export default function HealthPage() {
     try {
       const data = await getHealthRecords(startDate, today)
       setRecords(data)
-
-      // pre-fill if today exists
-      const todayRecord = data.find((r) => r.date === today)
-      if (todayRecord) {
-        setWeight(todayRecord.weight?.toString() || "")
-        setBpSys(todayRecord.blood_pressure_sys?.toString() || "")
-        setBpDia(todayRecord.blood_pressure_dia?.toString() || "")
-        setSugar(todayRecord.blood_sugar?.toString() || "")
-        setSleep(todayRecord.sleep_hours?.toString() || "")
-        setNote(todayRecord.note || "")
-      }
     } catch (e) {
       console.error("Failed to load health:", e)
     } finally {
@@ -57,6 +47,23 @@ export default function HealthPage() {
   }, [startDate, today])
 
   useEffect(() => { load() }, [load])
+
+  function fillForm(r: PersonalHealth) {
+    setDate(r.date)
+    setWeight(r.weight?.toString() || "")
+    setBpSys(r.blood_pressure_sys?.toString() || "")
+    setBpDia(r.blood_pressure_dia?.toString() || "")
+    setSugar(r.blood_sugar?.toString() || "")
+    setSleep(r.sleep_hours?.toString() || "")
+    setNote(r.note || "")
+    setEditingId(r.id)
+  }
+
+  function resetForm() {
+    setDate(today)
+    setWeight(""); setBpSys(""); setBpDia(""); setSugar(""); setSleep(""); setNote("")
+    setEditingId(null)
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -71,6 +78,13 @@ export default function HealthPage() {
       note,
     })
     setSaving(false)
+    resetForm()
+    load()
+  }
+
+  async function handleDelete(id: number) {
+    await deleteHealth(id)
+    if (editingId === id) resetForm()
     load()
   }
 
@@ -119,7 +133,12 @@ export default function HealthPage() {
       {/* Form */}
       <Card>
         <CardHeader>
-          <CardTitle>บันทึกสุขภาพ</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>{editingId ? "แก้ไขข้อมูลสุขภาพ" : "บันทึกสุขภาพ"}</CardTitle>
+            {editingId && (
+              <Button variant="ghost" size="sm" onClick={resetForm}>ยกเลิกแก้ไข</Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="flex flex-wrap gap-3 items-end">
@@ -152,7 +171,7 @@ export default function HealthPage() {
               <Input placeholder="(ไม่บังคับ)" value={note} onChange={(e) => setNote(e.target.value)} className="w-[150px]" />
             </div>
             <Button type="submit" disabled={saving}>
-              {saving ? "กำลังบันทึก..." : "บันทึก"}
+              {saving ? "กำลังบันทึก..." : editingId ? "อัปเดต" : "บันทึก"}
             </Button>
           </form>
         </CardContent>
@@ -201,6 +220,58 @@ export default function HealthPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Records Table */}
+          {records.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">ประวัติสุขภาพ ({records.length} วัน)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="py-2 pr-3">วันที่</th>
+                        <th className="py-2 pr-3 text-right">น้ำหนัก</th>
+                        <th className="py-2 pr-3 text-right">ความดัน</th>
+                        <th className="py-2 pr-3 text-right">น้ำตาล</th>
+                        <th className="py-2 pr-3 text-right">นอน</th>
+                        <th className="py-2 pr-3">หมายเหตุ</th>
+                        <th className="py-2 w-16"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...records].reverse().map((r) => (
+                        <tr key={r.id} className="border-b last:border-0 hover:bg-muted/50">
+                          <td className="py-2 pr-3">{toThaiDate(r.date)}</td>
+                          <td className="py-2 pr-3 text-right">{r.weight ?? "-"}</td>
+                          <td className="py-2 pr-3 text-right">
+                            {r.blood_pressure_sys && r.blood_pressure_dia
+                              ? `${r.blood_pressure_sys}/${r.blood_pressure_dia}`
+                              : "-"}
+                          </td>
+                          <td className="py-2 pr-3 text-right">{r.blood_sugar ?? "-"}</td>
+                          <td className="py-2 pr-3 text-right">{r.sleep_hours ?? "-"}</td>
+                          <td className="py-2 pr-3 text-muted-foreground">{r.note || "-"}</td>
+                          <td className="py-2 whitespace-nowrap">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-500"
+                              onClick={() => fillForm(r)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-500"
+                              onClick={() => handleDelete(r.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>
