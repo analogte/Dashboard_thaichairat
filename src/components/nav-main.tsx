@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { type LucideIcon } from "lucide-react"
+import { useI18n } from "@/lib/i18n"
 
 import {
   SidebarGroup,
@@ -23,10 +24,11 @@ export function NavMain({
   }[]
 }) {
   const pathname = usePathname()
+  const { t } = useI18n()
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>เมนู</SidebarGroupLabel>
+      <SidebarGroupLabel>{t("nav.menu")}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const isActive = pathname === item.url || (item.url !== "/dashboard" && pathname.startsWith(item.url))

@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator"
 import { GlobalSearch } from "@/components/global-search"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { useI18n } from "@/lib/i18n"
 import {
   SidebarInset,
   SidebarProvider,
@@ -13,20 +14,23 @@ import {
 } from "@/components/ui/sidebar"
 import { MonitorProvider } from "@/lib/monitor-context"
 
-const DashboardHeader = memo(function DashboardHeader() {
+function DashboardHeaderInner() {
+  const { t } = useI18n()
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
       <SidebarTrigger className="-ml-1" aria-label="เปิด/ปิดเมนู" />
       <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
       <span className="text-sm font-medium text-muted-foreground hidden sm:inline">
-        แดชบอร์ด ไทยชัยรัตย์
+        {t("dashboard.title")}
       </span>
       <div className="flex-1" />
       <GlobalSearch />
       <ThemeToggle />
     </header>
   )
-})
+}
+
+const DashboardHeader = memo(DashboardHeaderInner)
 
 function ServiceWorkerRegistrar() {
   useEffect(() => {

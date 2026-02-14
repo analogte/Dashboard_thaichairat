@@ -1,10 +1,13 @@
 "use client"
 
 import dynamic from "next/dynamic"
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useMonitor } from "@/lib/monitor-context"
 import { exportCSV } from "@/lib/export"
+import { exportSectionPDF } from "@/lib/export-pdf"
+import { DateRangePicker, useDateRange } from "@/components/date-range-picker"
 import {
   Store,
   RefreshCw,
@@ -16,6 +19,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Download,
+  FileText,
 } from "lucide-react"
 
 const DailyChart = dynamic(() => import("@/components/daily-chart"), {
@@ -39,6 +43,7 @@ function pct(n: number) {
 
 export default function ShopPage() {
   const { data, loading, refresh: load } = useMonitor()
+  const { range, setRange, filterByRange } = useDateRange()
 
   if (loading && !data) {
     return (
@@ -61,11 +66,15 @@ export default function ShopPage() {
   const h = data.shop_history
   const week = h?.week
   const month = h?.month
+  const filteredDaily = useMemo(
+    () => filterByRange(h?.daily ?? []),
+    [h?.daily, filterByRange],
+  )
 
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <Store className="h-6 w-6" />
           <div>
@@ -73,16 +82,32 @@ export default function ShopPage() {
             <p className="text-sm text-muted-foreground">{data.updated_label}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <DateRangePicker value={range} onChange={setRange} />
           <button
             onClick={() => {
-              const daily = h?.daily ?? []
+              const daily = filteredDaily
               exportCSV("shop-daily", ["วันที่", "รายรับ", "รายจ่าย", "กำไร"], daily, ["date", "income", "expense", "profit"])
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
           >
             <Download className="h-3.5 w-3.5" />
             CSV
+          </button>
+          <button
+            onClick={() => {
+              const rows = filteredDaily.map(
+                (d) => `<tr><td>${d.date}</td><td class="text-right">${fmt(d.income)}</td><td class="text-right">${fmt(d.expense)}</td><td class="text-right ${d.profit >= 0 ? "text-green" : "text-red"}">${d.profit >= 0 ? "+" : ""}${fmt(d.profit)}</td></tr>`,
+              ).join("")
+              exportSectionPDF(
+                `ภาพรวมร้านค้า ${range.from} - ${range.to}`,
+                `<table><thead><tr><th>วันที่</th><th class="text-right">รายรับ</th><th class="text-right">รายจ่าย</th><th class="text-right">กำไร</th></tr></thead><tbody>${rows}</tbody></table>`,
+              )
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            PDF
           </button>
           <button
             onClick={load}
@@ -194,7 +219,7 @@ export default function ShopPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <DailyChart data={h?.daily || []} />
+          <DailyChart data={filteredDaily} />
         </CardContent>
       </Card>
 

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { type PnlMonth } from "@/lib/api"
 import { useMonitor } from "@/lib/monitor-context"
 import { exportCSV } from "@/lib/export"
+import { exportSectionPDF } from "@/lib/export-pdf"
 import {
   Receipt,
   RefreshCw,
@@ -18,6 +19,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Download,
+  FileText,
 } from "lucide-react"
 
 function fmt(n: number | null | undefined) {
@@ -115,6 +117,21 @@ export default function PnlPage() {
           >
             <Download className="h-3.5 w-3.5" />
             CSV
+          </button>
+          <button
+            onClick={() => {
+              const rows = pnl.months.map(
+                (m) => `<tr><td>${monthLabel(m.month)}</td><td class="text-right">${m.days}</td><td class="text-right">${fmt(m.income)}</td><td class="text-right">${fmt(m.total_expense)}</td><td class="text-right ${m.net_profit >= 0 ? "text-green" : "text-red"}">${m.net_profit >= 0 ? "+" : ""}${fmt(m.net_profit)}</td><td class="text-right">${m.margin_pct}%</td></tr>`,
+              ).join("")
+              exportSectionPDF(
+                `งบกำไรขาดทุน (P&L) — ${monthLabel(current.month)}`,
+                `<table><thead><tr><th>เดือน</th><th class="text-right">วัน</th><th class="text-right">รายรับ</th><th class="text-right">รายจ่ายรวม</th><th class="text-right">กำไรสุทธิ</th><th class="text-right">Margin</th></tr></thead><tbody>${rows}</tbody></table>`,
+              )
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            PDF
           </button>
           <button
             onClick={load}

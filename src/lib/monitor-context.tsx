@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react"
 import { fetchMonitorData, type MonitorData } from "./api"
+import { loadSettings } from "./settings-store"
 
 interface MonitorContextType {
   data: MonitorData | null
@@ -54,7 +55,10 @@ export function MonitorProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refresh()
-    const interval = setInterval(refresh, 5 * 60 * 1000)
+    // Read refresh interval from user settings (default 5 min)
+    const settings = loadSettings()
+    const intervalMs = settings.refreshInterval * 60 * 1000
+    const interval = setInterval(refresh, intervalMs)
     return () => clearInterval(interval)
   }, [refresh])
 
